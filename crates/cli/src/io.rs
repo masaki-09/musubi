@@ -46,8 +46,9 @@ pub fn read_key(path: &Path, alphabet: &Alphabet) -> anyhow::Result<Key> {
 /// the alphabet` error.
 #[must_use]
 pub fn trim_trailing_newline(s: &str) -> &str {
-    s.strip_suffix('\n')
-        .map_or(s, |stripped| stripped.strip_suffix('\r').unwrap_or(stripped))
+    s.strip_suffix('\n').map_or(s, |stripped| {
+        stripped.strip_suffix('\r').unwrap_or(stripped)
+    })
 }
 
 #[cfg(test)]
