@@ -1,0 +1,28 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+
+# WASM build output
+/web/pkg/
+/crates/wasm/pkg/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local config / secrets
+.env
+.env.local
+*.key
+!**/test-vectors/*.key
+
+# Claude Code local settings
+.claude/
+
+# Logs
+*.log

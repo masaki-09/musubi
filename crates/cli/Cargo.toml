@@ -1,0 +1,21 @@
+[package]
+name = "musubi-cli"
+description = "Command-line interface for the musubi relational cipher."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme = "../../README.md"
+
+[[bin]]
+name = "musubi"
+path = "src/main.rs"
+
+[dependencies]
+musubi-core = { path = "../core", version = "0.1.0" }
+
+[lints]
+workspace = true
