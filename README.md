@@ -33,9 +33,25 @@
 
 ```bash
 cargo install --git https://github.com/masaki-09/musubi musubi-cli
-musubi keygen > my.key
-echo "あいしてる" | musubi encrypt -k my.key
+
+# 鍵生成（OS のエントロピーから乱数取得）
+musubi keygen -o my.key
+
+# 暗号化（stdin → stdout、アンカー位置は中央が既定）
+echo "あいしてる" | musubi encrypt -k my.key -o love.json
+
+# 復号
+musubi decrypt -k my.key -i love.json
+# → あいしてる
 ```
+
+主なフラグ：
+
+| サブコマンド | フラグ | 用途 |
+|---|---|---|
+| `keygen`  | `-o <file>`, `--seed <u64>` | 出力先 / 再現用のPRNG seed（デバッグ用、本番では使わない） |
+| `encrypt` | `-k <file>`, `-i <file>`, `-o <file>`, `-a <pos>`, `--compact` | 鍵 / 入力 / 出力 / アンカー位置（既定: 中央）/ 整形なしJSON |
+| `decrypt` | `-k <file>`, `-i <file>`, `-o <file>` | 鍵 / 入力 / 出力 |
 
 ### Web
 

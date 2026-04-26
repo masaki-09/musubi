@@ -16,5 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Branch protection on `main`: pull-request only, required CI checks, linear history, no force pushes.
 - `musubi-core`: full v1 cipher implementation — `Alphabet`, `Key` (with random + JSON I/O), `Relation`, `Ciphertext`, `encrypt`, `decrypt`. Default alphabet `default-v1` (175 chars: 五十音80 + ASCII 95).
 - Formal cipher specification at [`docs/SPEC.md`](docs/SPEC.md) and theory writeup at [`docs/THEORY.md`](docs/THEORY.md).
+- `musubi-cli` (binary `musubi`): `keygen` / `encrypt` / `decrypt` subcommands with stdin/stdout streaming, file I/O via `-i`/`-o`, optional `--seed` for reproducible keys, `--anchor` for explicit anchor positioning, and `--compact` for single-line ciphertext JSON.
+- End-to-end CLI integration tests using `assert_cmd` covering round-trip, Japanese plaintext, error paths, and seeded determinism.
 
 [Unreleased]: https://github.com/masaki-09/musubi/compare/...HEAD
