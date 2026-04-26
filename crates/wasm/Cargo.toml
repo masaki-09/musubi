@@ -24,5 +24,13 @@ rand = "0.8"
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 
+# wasm-pack ships an older `wasm-opt` whose validator does not recognise
+# the bulk-memory and nontrapping-fptoint features that the current Rust
+# toolchain emits by default. Skip the wasm-opt pass; the resulting
+# `.wasm` is a few KB larger but still a few tens of KB, which is fine
+# for this app.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [lints]
 workspace = true
