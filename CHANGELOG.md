@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-04-27
+
+First public release. The cipher, the CLI, and the browser UI all ship together.
+
 ### Added
 - Cargo workspace scaffold with `musubi-core`, `musubi-cli`, `musubi-wasm` crates.
 - MIT License, README (Japanese), `.gitignore`, `.editorconfig`, `rustfmt.toml`.
@@ -23,4 +27,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/workflows/pages.yml`: builds the WASM bundle with `wasm-pack` and deploys `web/` to GitHub Pages on every push to `main`.
 - CI's `wasm32 build` job now uses `wasm-pack` so PR validation matches the production deploy pipeline.
 
-[Unreleased]: https://github.com/masaki-09/musubi/compare/...HEAD
+[Unreleased]: https://github.com/masaki-09/musubi/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/masaki-09/musubi/releases/tag/v0.1.0
