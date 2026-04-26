@@ -42,8 +42,9 @@ impl Relation {
     #[must_use]
     pub fn reference(self) -> usize {
         match self {
-            Self::Same { reference } | Self::Mirror { reference } => reference,
-            Self::Shift { reference, .. } => reference,
+            Self::Same { reference }
+            | Self::Mirror { reference }
+            | Self::Shift { reference, .. } => reference,
         }
     }
 }

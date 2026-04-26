@@ -99,6 +99,7 @@ impl Key {
     ///
     /// The output binds the alphabet identifier to the permutation so that
     /// [`Key::from_json`] can reject mismatched alphabets at parse time.
+    #[must_use]
     pub fn to_json(&self) -> String {
         let s = KeySerde {
             alphabet: self.alphabet_id.clone(),
