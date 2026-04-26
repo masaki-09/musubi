@@ -27,15 +27,12 @@ pub struct Args {
 /// Run the `keygen` subcommand.
 pub fn run(args: &Args) -> anyhow::Result<()> {
     let alphabet = Alphabet::default_v1();
-    let key = match args.seed {
-        Some(seed) => {
-            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-            Key::random(&alphabet, &mut rng)
-        }
-        None => {
-            let mut rng = OsRng;
-            Key::random(&alphabet, &mut rng)
-        }
+    let key = if let Some(seed) = args.seed {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+        Key::random(&alphabet, &mut rng)
+    } else {
+        let mut rng = OsRng;
+        Key::random(&alphabet, &mut rng)
     };
     let mut json = key.to_json();
     json.push('\n');

@@ -8,29 +8,25 @@ use musubi_core::{Alphabet, Key};
 
 /// Read input from a file, or from stdin if `path` is `None`.
 pub fn read_input(path: Option<&Path>) -> anyhow::Result<String> {
-    match path {
-        Some(p) => {
-            std::fs::read_to_string(p).with_context(|| format!("failed to read {}", p.display()))
-        }
-        None => {
-            let mut s = String::new();
-            std::io::stdin()
-                .read_to_string(&mut s)
-                .context("failed to read stdin")?;
-            Ok(s)
-        }
+    if let Some(p) = path {
+        std::fs::read_to_string(p).with_context(|| format!("failed to read {}", p.display()))
+    } else {
+        let mut s = String::new();
+        std::io::stdin()
+            .read_to_string(&mut s)
+            .context("failed to read stdin")?;
+        Ok(s)
     }
 }
 
 /// Write `bytes` to a file, or to stdout if `path` is `None`.
 pub fn write_output(path: Option<&Path>, bytes: &[u8]) -> anyhow::Result<()> {
-    match path {
-        Some(p) => {
-            std::fs::write(p, bytes).with_context(|| format!("failed to write {}", p.display()))
-        }
-        None => std::io::stdout()
+    if let Some(p) = path {
+        std::fs::write(p, bytes).with_context(|| format!("failed to write {}", p.display()))
+    } else {
+        std::io::stdout()
             .write_all(bytes)
-            .context("failed to write stdout"),
+            .context("failed to write stdout")
     }
 }
 
@@ -51,8 +47,7 @@ pub fn read_key(path: &Path, alphabet: &Alphabet) -> anyhow::Result<Key> {
 #[must_use]
 pub fn trim_trailing_newline(s: &str) -> &str {
     s.strip_suffix('\n')
-        .map(|stripped| stripped.strip_suffix('\r').unwrap_or(stripped))
-        .unwrap_or(s)
+        .map_or(s, |stripped| stripped.strip_suffix('\r').unwrap_or(stripped))
 }
 
 #[cfg(test)]
