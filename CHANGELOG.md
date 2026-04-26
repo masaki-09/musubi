@@ -12,5 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MIT License, README (Japanese), `.gitignore`, `.editorconfig`, `rustfmt.toml`.
 - OSS contribution templates: `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, issue & PR templates.
 - Dependabot configuration for Cargo and GitHub Actions.
+- GitHub Actions CI: rustfmt, clippy (`-D warnings`), multi-OS tests (Linux/macOS/Windows), `wasm32-unknown-unknown` build, strict rustdoc.
 
 [Unreleased]: https://github.com/masaki-09/musubi/compare/...HEAD
