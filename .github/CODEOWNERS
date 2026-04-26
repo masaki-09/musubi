@@ -1,0 +1,5 @@
+# Default reviewer for any change.
+*       @masaki-09
+
+# Workflow / CI changes need explicit reviewer attention.
+/.github/    @masaki-09

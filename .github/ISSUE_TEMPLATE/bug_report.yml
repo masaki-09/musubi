@@ -1,0 +1,62 @@
+name: 🐛 Bug report / バグ報告
+description: 動作不良を報告する
+title: "[bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグ報告ありがとうございます！再現に必要な情報をできるだけ詳しく教えてください。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 何が起きましたか？ / What happened?
+      description: 観察された動作と、期待した動作を書いてください。
+      placeholder: |
+        - 観察: ...
+        - 期待: ...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順 / Steps to reproduce
+      description: 最小再現手順を順番に。
+      placeholder: |
+        1. `musubi keygen > my.key`
+        2. `echo "..." | musubi encrypt -k my.key`
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: バージョン / Version
+      description: "`musubi --version` の出力、または commit SHA"
+      placeholder: "0.1.0 / git: abcdef0"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: 影響箇所 / Component
+      multiple: true
+      options:
+        - musubi-core
+        - musubi-cli
+        - musubi-wasm
+        - WebUI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 環境 / Environment
+      placeholder: "Windows 11 / macOS 14 / Ubuntu 22.04, rustc 1.75 など"
+  - type: textarea
+    id: extra
+    attributes:
+      label: 補足 / Additional context
+      description: ログ・スクショなど。

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 質問・雑談 / Questions & Discussion
+    url: https://github.com/masaki-09/musubi/discussions
+    about: バグ・機能要望以外の話題は Discussions へ。
