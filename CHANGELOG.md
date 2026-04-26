@@ -18,5 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Formal cipher specification at [`docs/SPEC.md`](docs/SPEC.md) and theory writeup at [`docs/THEORY.md`](docs/THEORY.md).
 - `musubi-cli` (binary `musubi`): `keygen` / `encrypt` / `decrypt` subcommands with stdin/stdout streaming, file I/O via `-i`/`-o`, optional `--seed` for reproducible keys, `--anchor` for explicit anchor positioning, and `--compact` for single-line ciphertext JSON.
 - End-to-end CLI integration tests using `assert_cmd` covering round-trip, Japanese plaintext, error paths, and seeded determinism.
+- `musubi-wasm`: WebAssembly bindings exposing `keygen` / `encrypt` / `decrypt` to JavaScript via `wasm-bindgen`. Uses `crypto.getRandomValues` in the browser via `getrandom`'s `js` feature.
+- `web/`: zero-server static frontend (`index.html` + `app.js` + `style.css`) wiring the WASM module to a tabbed UI for keygen / encrypt / decrypt.
+- `.github/workflows/pages.yml`: builds the WASM bundle with `wasm-pack` and deploys `web/` to GitHub Pages on every push to `main`.
+- CI's `wasm32 build` job now uses `wasm-pack` so PR validation matches the production deploy pipeline.
 
 [Unreleased]: https://github.com/masaki-09/musubi/compare/...HEAD
