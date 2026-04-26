@@ -65,8 +65,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build -p musubi-wasm --target wasm32-unknown-unknown
+      # Build the full wasm-pack pipeline (wasm-bindgen JS bindings + glue)
+      # so PR CI matches what `pages.yml` deploys on `main`.
+      - run: wasm-pack build crates/wasm --target web --out-dir ../../web/pkg
 
   docs:
     name: rustdoc

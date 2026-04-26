@@ -15,10 +15,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 musubi-core = { path = "../core", version = "0.1.0" }
+wasm-bindgen = "0.2"
+serde_json = "1"
+rand = "0.8"
 
-# Enable the `js` feature of getrandom on wasm32-unknown-unknown so that
-# `rand`'s default RNG can source entropy from the browser. This applies
-# only when targeting wasm32; native targets continue to use OsRng.
+# Enable getrandom's `js` feature only when targeting the browser so
+# rand's OsRng can pull entropy from `crypto.getRandomValues`.
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 

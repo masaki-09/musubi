@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>musubi (結び) — 関係性暗号</title>
+  <meta name="description" content="関係性暗号 musubi のブラウザ実装。鍵生成・暗号化・復号がすべてローカルで完結します。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>musubi <span class="kanji">結び</span></h1>
+    <p class="tagline">関係性暗号 — A relational cipher for the romantically inclined.</p>
+  </header>
+
+  <main>
+    <nav class="tabs" role="tablist">
+      <button data-tab="keygen" class="active" role="tab">鍵を作る</button>
+      <button data-tab="encrypt" role="tab">暗号化</button>
+      <button data-tab="decrypt" role="tab">復号</button>
+    </nav>
+
+    <section id="panel-keygen" class="panel active" role="tabpanel">
+      <h2>新しい鍵を作る</h2>
+      <p class="lede">ブラウザの暗号学的乱数 (<code>crypto.getRandomValues</code>) を使い、<code>default-v1</code> アルファベット 175 文字の順列を生成します。鍵はあなたのブラウザの中だけに残ります。</p>
+      <button id="btn-keygen" class="primary">鍵を生成</button>
+      <textarea id="key-output" readonly placeholder="ここに鍵 (JSON) が表示されます" rows="8"></textarea>
+      <div class="actions">
+        <button id="btn-copy-key">コピー</button>
+        <button id="btn-download-key">ダウンロード</button>
+      </div>
+    </section>
+
+    <section id="panel-encrypt" class="panel" role="tabpanel">
+      <h2>暗号化</h2>
+      <label for="enc-key">鍵 (JSON)</label>
+      <textarea id="enc-key" placeholder="keygen タブで作った鍵を貼り付け" rows="5"></textarea>
+      <label for="enc-plain">平文</label>
+      <textarea id="enc-plain" placeholder="暗号化したい文章。アルファベット外の文字 (例: 「、」「世」) を含むとエラーになります。" rows="3"></textarea>
+      <label for="enc-anchor" class="inline">アンカー位置 (省略時は中央)
+        <input id="enc-anchor" type="number" min="0" placeholder="例: 2">
+      </label>
+      <button id="btn-encrypt" class="primary">暗号化</button>
+      <textarea id="enc-output" readonly placeholder="暗号文 (JSON)" rows="10"></textarea>
+      <div class="actions">
+        <button id="btn-copy-cipher">コピー</button>
+        <button id="btn-download-cipher">ダウンロード</button>
+      </div>
+    </section>
+
+    <section id="panel-decrypt" class="panel" role="tabpanel">
+      <h2>復号</h2>
+      <label for="dec-key">鍵 (JSON)</label>
+      <textarea id="dec-key" placeholder="送信者と共有している鍵" rows="5"></textarea>
+      <label for="dec-cipher">暗号文 (JSON)</label>
+      <textarea id="dec-cipher" placeholder="復号したい暗号文" rows="10"></textarea>
+      <button id="btn-decrypt" class="primary">復号</button>
+      <textarea id="dec-output" readonly placeholder="ここに平文が表示されます" rows="3"></textarea>
+    </section>
+
+    <div id="status" hidden role="status" aria-live="polite"></div>
+  </main>
+
+  <footer>
+    <p class="warning">
+      <strong>⚠ 玩具暗号です</strong>
+      musubi は古典暗号の楽しみのためのソフトウェアであり、本気の秘匿通信には使えません。詳細は
+      <a href="https://github.com/masaki-09/musubi/blob/main/SECURITY.md">SECURITY.md</a> を参照。
+    </p>
+    <p class="attribution">
+      <a href="https://github.com/masaki-09/musubi">GitHub</a> ·
+      <a href="https://github.com/masaki-09/musubi/blob/main/docs/THEORY.md">理論</a> ·
+      <a href="https://github.com/masaki-09/musubi/blob/main/docs/SPEC.md">仕様</a> ·
+      MIT License
+    </p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

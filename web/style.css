@@ -1,0 +1,204 @@
+/* musubi WebUI — minimal, monospace-friendly, with a single red-thread accent. */
+
+:root {
+  --bg: #fafaf7;
+  --fg: #1a1a1a;
+  --accent: #b22222;
+  --muted: #6b6b6b;
+  --border: #d8d8d3;
+  --code-bg: #f0f0eb;
+  --warning-bg: #fff8e1;
+  --success: #2e7d32;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Menlo", "Consolas", monospace;
+  --serif: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--serif);
+  background: var(--bg);
+  color: var(--fg);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  line-height: 1.7;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+header h1 {
+  font-size: 2.5rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+header h1 .kanji {
+  color: var(--accent);
+  margin-left: 0.4em;
+}
+.tagline {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-style: italic;
+  margin: 0.4rem 0 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+.tabs button {
+  background: none;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s;
+}
+.tabs button:hover { color: var(--fg); }
+.tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+.panel h2 {
+  font-weight: 400;
+  font-size: 1.4rem;
+  margin: 0 0 0.5rem;
+}
+.panel .lede {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0 0 1.2rem;
+}
+.panel .lede code {
+  background: var(--code-bg);
+  padding: 0 0.3em;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+label {
+  display: block;
+  margin: 1rem 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+label.inline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+textarea, input[type="number"] {
+  width: 100%;
+  padding: 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  background: var(--code-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  resize: vertical;
+  line-height: 1.5;
+}
+textarea:focus, input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+}
+input[type="number"] { width: 8em; padding: 0.4rem 0.6rem; }
+textarea[readonly] { background: #f6f6f1; }
+
+button {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+button:hover { background: var(--fg); color: var(--bg); }
+button.primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  margin-top: 1rem;
+  padding: 0.6rem 1.6rem;
+  font-size: 0.95rem;
+}
+button.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+#status {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--fg);
+  color: var(--bg);
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: calc(100% - 2rem);
+}
+#status.error { background: var(--accent); }
+#status.success { background: var(--success); }
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.warning {
+  background: var(--warning-bg);
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  margin: 0 0 1rem;
+}
+.warning strong {
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.attribution {
+  text-align: center;
+  margin: 1rem 0 0;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+a:hover { border-bottom-style: solid; }
+
+@media (max-width: 480px) {
+  body { padding: 1.5rem 1rem 3rem; }
+  header h1 { font-size: 2rem; }
+  .tabs button { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+}
