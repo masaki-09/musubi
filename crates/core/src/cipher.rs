@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     fn chain_encoder_round_trips_for_every_anchor_position() {
-        let (_a, key) = fresh_key(0xC0FF_EE);
+        let (_a, key) = fresh_key(0x00C0_FFEE);
         let plaintext = "あいしてる";
         let n = plaintext.chars().count();
         for anchor in 0..n {
