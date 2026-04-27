@@ -45,7 +45,7 @@ pub mod key;
 pub mod relation;
 
 pub use alphabet::Alphabet;
-pub use cipher::{decrypt, encrypt, Anchor, Ciphertext, FORMAT_VERSION};
+pub use cipher::{decrypt, encrypt, encrypt_chain, Anchor, Ciphertext, FORMAT_VERSION};
 pub use error::{MusubiError, Result};
 pub use key::Key;
 pub use relation::Relation;
