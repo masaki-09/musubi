@@ -1,5 +1,7 @@
 //! `encrypt` / `decrypt` and the [`Ciphertext`] container.
 
+use rand::seq::SliceRandom;
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{MusubiError, Result};
@@ -78,6 +80,74 @@ pub fn encrypt(plaintext: &str, key: &Key, anchor_position: usize) -> Result<Cip
     for i in (anchor_position + 1)..n {
         let ref_idx = i - 1;
         relations[i] = Some(make_relation(chars[i], chars[ref_idx], ref_idx, key));
+    }
+
+    Ok(Ciphertext {
+        version: FORMAT_VERSION,
+        alphabet: key.alphabet_id().to_string(),
+        length: n,
+        anchor: Anchor {
+            position: anchor_position,
+            character: chars[anchor_position],
+        },
+        relations,
+    })
+}
+
+/// Encrypt `plaintext` with `key`, weaving a random spanning tree rooted at
+/// the anchor (the "多重結び / chain" encoder).
+///
+/// Unlike [`encrypt`], which always references the immediately adjacent
+/// position, this encoder visits non-anchor positions in a random order and
+/// references *any* already-resolved position. The resulting reference graph
+/// is a uniformly random tree rooted at `anchor_position`.
+///
+/// The output ciphertext has the same on-disk format as [`encrypt`]'s output
+/// (`version = 1`); decoders need no changes — [`decrypt`] already accepts
+/// any acyclic reference graph rooted at the anchor.
+///
+/// # Errors
+///
+/// Same as [`encrypt`].
+pub fn encrypt_chain<R: RngCore>(
+    plaintext: &str,
+    key: &Key,
+    anchor_position: usize,
+    rng: &mut R,
+) -> Result<Ciphertext> {
+    let chars: Vec<char> = plaintext.chars().collect();
+    let n = chars.len();
+    if n == 0 {
+        return Err(MusubiError::EmptyPlaintext);
+    }
+    if anchor_position >= n {
+        return Err(MusubiError::AnchorOutOfRange {
+            position: anchor_position,
+            length: n,
+        });
+    }
+    for &c in &chars {
+        if key.rank_of(c).is_none() {
+            return Err(MusubiError::CharOutsideAlphabet { ch: c });
+        }
+    }
+
+    let mut relations: Vec<Option<Relation>> = vec![None; n];
+
+    // Random visit order over non-anchor positions.
+    let mut pending: Vec<usize> = (0..n).filter(|&i| i != anchor_position).collect();
+    pending.shuffle(rng);
+
+    let mut resolved: Vec<usize> = Vec::with_capacity(n);
+    resolved.push(anchor_position);
+
+    for i in pending {
+        // Pick a uniformly random already-resolved reference.
+        let &ref_idx = resolved
+            .choose(rng)
+            .expect("resolved always contains at least the anchor");
+        relations[i] = Some(make_relation(chars[i], chars[ref_idx], ref_idx, key));
+        resolved.push(i);
     }
 
     Ok(Ciphertext {
@@ -322,6 +392,80 @@ mod tests {
         assert!(matches!(
             decrypt(&cipher, &key),
             Err(MusubiError::AlphabetMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn chain_encoder_round_trips_for_every_anchor_position() {
+        let (_a, key) = fresh_key(0xC0FF_EE);
+        let plaintext = "あいしてる";
+        let n = plaintext.chars().count();
+        for anchor in 0..n {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(0xBEEF + anchor as u64);
+            let cipher = encrypt_chain(plaintext, &key, anchor, &mut rng).unwrap();
+            assert_eq!(cipher.length, n);
+            assert_eq!(cipher.anchor.position, anchor);
+            assert_eq!(cipher.relations[anchor], None);
+            for (i, r) in cipher.relations.iter().enumerate() {
+                if i == anchor {
+                    continue;
+                }
+                assert!(r.is_some(), "missing relation at {i}");
+            }
+            assert_eq!(decrypt(&cipher, &key).unwrap(), plaintext);
+        }
+    }
+
+    #[test]
+    fn chain_encoder_is_deterministic_with_seeded_rng() {
+        let (_a, key) = fresh_key(0xD00D);
+        let plaintext = "Hello, musubi!";
+        let mut rng_a = rand::rngs::StdRng::seed_from_u64(7);
+        let mut rng_b = rand::rngs::StdRng::seed_from_u64(7);
+        let a = encrypt_chain(plaintext, &key, 3, &mut rng_a).unwrap();
+        let b = encrypt_chain(plaintext, &key, 3, &mut rng_b).unwrap();
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn chain_encoder_produces_acyclic_graph_rooted_at_anchor() {
+        let (_a, key) = fresh_key(0xACED);
+        let plaintext = "あいうえおかきくけこ";
+        let mut rng = rand::rngs::StdRng::seed_from_u64(123);
+        let cipher = encrypt_chain(plaintext, &key, 4, &mut rng).unwrap();
+        // BFS from the anchor along reverse-reference edges should reach every node.
+        let n = cipher.length;
+        let mut reachable = vec![false; n];
+        reachable[cipher.anchor.position] = true;
+        let mut progress = true;
+        while progress {
+            progress = false;
+            for (i, r) in cipher.relations.iter().enumerate() {
+                if reachable[i] {
+                    continue;
+                }
+                if let Some(rel) = r {
+                    if reachable[rel.reference()] {
+                        reachable[i] = true;
+                        progress = true;
+                    }
+                }
+            }
+        }
+        assert!(reachable.iter().all(|&b| b), "all nodes reachable");
+    }
+
+    #[test]
+    fn chain_encoder_rejects_empty_and_out_of_range() {
+        let (_a, key) = fresh_key(11);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0);
+        assert!(matches!(
+            encrypt_chain("", &key, 0, &mut rng),
+            Err(MusubiError::EmptyPlaintext)
+        ));
+        assert!(matches!(
+            encrypt_chain("abc", &key, 9, &mut rng),
+            Err(MusubiError::AnchorOutOfRange { .. })
         ));
     }
 

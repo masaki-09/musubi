@@ -163,6 +163,30 @@ Given plaintext `m₀ m₁ … mₙ₋₁` and anchor position `a`:
   `delta = ((π⁻¹(c) − π⁻¹(ref_c)) mod |Σ|)`,
   normalized to `[−⌊|Σ|/2⌋, ⌊|Σ|/2⌋]`.
 
+## 6.5 Encryption (chain encoder, optional)
+
+Implementations MAY provide an alternative encoder that produces a
+*uniformly random spanning tree* rooted at the anchor instead of the
+canonical 1-step-toward-anchor graph of §6. This is the **chain
+encoder** (多重結び).
+
+Given plaintext `m₀ … mₙ₋₁`, anchor `a`, and a uniform random source `R`:
+
+1. Validate `n ≥ 1`, `a < n`, and every `m_i ∈ Σ` as in §6 steps 1–2.
+2. Initialize `relations` as `n` nulls and `resolved = [a]`.
+3. Form `pending = (0..n) \ {a}` and shuffle it uniformly with `R`.
+4. For each `i` in the shuffled `pending`:
+   - Choose `r_i` uniformly at random from `resolved` (using `R`).
+   - Set `relations[i] = chooseRelation(m_i, m_{r_i}, r_i)` per §6.
+   - Append `i` to `resolved`.
+5. Emit the ciphertext exactly as in §6 step 6 (same `version=1` format).
+
+The chain encoder produces ciphertexts that decoders conforming to
+SPEC v1 §7 already accept — the reference invariants (§5.2) are
+preserved by construction (every non-anchor position's reference is a
+strictly earlier `resolved` position, so the graph is acyclic and
+rooted at the anchor).
+
 ## 7. Decryption
 
 Given a ciphertext `C` and a key `π`:
