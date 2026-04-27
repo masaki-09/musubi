@@ -65,6 +65,7 @@ musubi decrypt -k my.key -i love.json
 
 - 形式仕様: [`docs/SPEC.md`](docs/SPEC.md)
 - 理論解説: [`docs/THEORY.md`](docs/THEORY.md)
+- 進行中の提案: [`docs/PROPOSAL-v0.2.md`](docs/PROPOSAL-v0.2.md) — 多重結び (chain encoder) と迷い糸 (noise injection)
 
 ## 開発
 
