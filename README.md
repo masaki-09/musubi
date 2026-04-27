@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://masaki-09.github.io/musubi/icon.svg" width="96" height="96" alt="musubi trefoil knot icon">
+</p>
+
 <h1 align="center">musubi（結び）</h1>
 
 <p align="center">

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title desc">
+  <title id="title">musubi 結び</title>
+  <desc id="desc">A continuous red thread woven into a three-fold trefoil knot — the symbol of musubi, the relational cipher.</desc>
+
+  <!-- One continuous trefoil-knot path, sampled at 36 points around
+       (sin t + 2 sin 2t,  cos t − 2 cos 2t), scaled by 35 and centred
+       at (128, 128). -->
+  <path d="M 128 163
+           L 158 159 L 185 149 L 206 133 L 219 113 L 224  93
+           L 219  76 L 206  62 L 186  56 L 163  58 L 138  68
+           L 116  86 L  98 110 L  86 138 L  82 167 L  85 193
+           L  95 215 L 110 228 L 128 233 L 146 228 L 161 215
+           L 171 193 L 174 167 L 170 138 L 158 110 L 140  86
+           L 118  68 L  93  58 L  70  56 L  50  62 L  37  76
+           L  32  93 L  37 113 L  50 133 L  71 149 L  98 159 Z"
+        fill="none"
+        stroke="#b22222"
+        stroke-width="16"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Three short white "gap" segments at each crossing, oriented along
+       the *over* strand. They erase the under strand where it passes
+       behind, simulating a woven knot. -->
+  <g stroke="#ffffff" stroke-width="22" stroke-linecap="butt">
+    <line x1="164.7" y1="157.8" x2="183.3" y2="150.2"/>
+    <line x1="120.1" y1="69.9"  x2="135.9" y2="82.1"/>
+    <line x1="80.7"  y1="163.9" x2="83.4"  y2="144.1"/>
+  </g>
+
+  <!-- Restore the over-strand in red on top of the gaps. -->
+  <g stroke="#b22222" stroke-width="16" stroke-linecap="round">
+    <line x1="162.0" y1="158.9" x2="186.0" y2="149.1"/>
+    <line x1="117.7" y1="68.0"  x2="138.3" y2="84.0"/>
+    <line x1="80.3"  y1="166.9" x2="83.8"  y2="141.1"/>
+  </g>
+</svg>
