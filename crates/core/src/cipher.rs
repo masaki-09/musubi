@@ -415,45 +415,9 @@ pub fn decrypt(cipher: &Ciphertext, key: &Key) -> Result<String> {
     }
 
     if let Some(ext) = &cipher.ext {
-        let indices = &ext.plaintext_indices;
-        if indices.is_empty() {
-            return Err(MusubiError::MalformedCiphertext {
-                reason: "ext.plaintext_indices must not be empty".to_string(),
-            });
-        }
-        if indices.len() > n {
-            return Err(MusubiError::MalformedCiphertext {
-                reason: format!(
-                    "ext.plaintext_indices length {} exceeds ciphertext length {}",
-                    indices.len(),
-                    n
-                ),
-            });
-        }
-        let mut seen = vec![false; n];
-        for &idx in indices {
-            if idx >= n {
-                return Err(MusubiError::MalformedCiphertext {
-                    reason: format!(
-                        "ext.plaintext_indices contains out-of-range index {idx} (length {n})"
-                    ),
-                });
-            }
-            if seen[idx] {
-                return Err(MusubiError::MalformedCiphertext {
-                    reason: format!("ext.plaintext_indices contains duplicate index {idx}"),
-                });
-            }
-            seen[idx] = true;
-        }
-        if !indices.contains(&anchor_pos) {
-            return Err(MusubiError::MalformedCiphertext {
-                reason: format!(
-                    "ext.plaintext_indices does not contain the anchor position {anchor_pos}"
-                ),
-            });
-        }
-        let plaintext: String = indices
+        validate_ext_indices(&ext.plaintext_indices, n, anchor_pos)?;
+        let plaintext: String = ext
+            .plaintext_indices
             .iter()
             .map(|&i| chars[i].expect("filled in loop"))
             .collect();
@@ -465,6 +429,46 @@ pub fn decrypt(cipher: &Ciphertext, key: &Key) -> Result<String> {
         .map(|c| c.expect("filled in loop"))
         .collect();
     Ok(plaintext)
+}
+
+fn validate_ext_indices(indices: &[usize], length: usize, anchor_pos: usize) -> Result<()> {
+    if indices.is_empty() {
+        return Err(MusubiError::MalformedCiphertext {
+            reason: "ext.plaintext_indices must not be empty".to_string(),
+        });
+    }
+    if indices.len() > length {
+        return Err(MusubiError::MalformedCiphertext {
+            reason: format!(
+                "ext.plaintext_indices length {} exceeds ciphertext length {length}",
+                indices.len()
+            ),
+        });
+    }
+    let mut seen = vec![false; length];
+    for &idx in indices {
+        if idx >= length {
+            return Err(MusubiError::MalformedCiphertext {
+                reason: format!(
+                    "ext.plaintext_indices contains out-of-range index {idx} (length {length})"
+                ),
+            });
+        }
+        if seen[idx] {
+            return Err(MusubiError::MalformedCiphertext {
+                reason: format!("ext.plaintext_indices contains duplicate index {idx}"),
+            });
+        }
+        seen[idx] = true;
+    }
+    if !indices.contains(&anchor_pos) {
+        return Err(MusubiError::MalformedCiphertext {
+            reason: format!(
+                "ext.plaintext_indices does not contain the anchor position {anchor_pos}"
+            ),
+        });
+    }
+    Ok(())
 }
 
 fn apply_relation(rel: Relation, ref_char: char, key: &Key) -> Result<char> {
