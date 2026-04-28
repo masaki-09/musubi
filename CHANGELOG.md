@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-04-28 — 「織り (ori)」
+
+The "weaving" release. Two backward-compatible encoder extensions
+introduce richer ciphertext shapes while keeping `version: 1` on disk.
+
+### Added
+- **多重結び (chain encoder)** — new `musubi_core::encrypt_chain(plaintext, key, anchor, rng)`. Produces a uniformly random spanning tree rooted at the anchor instead of the canonical 1-step adjacency graph. Decoder unchanged.
+- **迷い糸 (noise injection)** — new `musubi_core::encrypt_woven(plaintext, key, anchor, noise, rng)`. Interleaves `noise` dummy characters with the real plaintext, hiding the true plaintext length from anyone without the key.
+- **`Ciphertext::ext` / `CiphertextExt::plaintext_indices`** — optional v0.2 extension field. Omitted from JSON when absent, so noise-free ciphertexts stay v0.1-compatible.
+- **`musubi encrypt --strategy <canonical|chain>`** — pick the encoder.
+- **`musubi encrypt --noise <N>`** — inject `N` dummy characters.
+- **`musubi encrypt --seed <u64>`** — reproducible chain/noise RNG.
+- **`musubi-wasm`** export `encryptWoven(plaintext, keyJson, anchor?, noise?, seed?)`.
+- **WebUI 織りモード** — collapsible "advanced" panel with a 多重結び checkbox and 迷い糸の本数 input.
+- **Spec sections** — `docs/SPEC.md` §5.3 (`ext` field), §6.5 (chain encoder), §6.6 (woven encoder), §7.1 (decryption with `plaintext_indices`).
+
+### Changed
+- `musubi_core::decrypt` now auto-detects `ext.plaintext_indices` and re-assembles the plaintext in the recorded order. v0.1-shaped ciphertexts decode unchanged.
+
+### Compatibility
+- `FORMAT_VERSION` stays at `1`. v0.1 ciphertexts decode unchanged with v0.2.
+- v0.2 ciphertexts produced **without** `--noise` are byte-compatible with v0.1 decoders.
+- v0.2 ciphertexts produced **with** `--noise > 0` carry an `ext` field and require a v0.2 decoder.
+
 ## [0.1.0] — 2026-04-27
 
 First public release. The cipher, the CLI, and the browser UI all ship together.
@@ -27,5 +51,6 @@ First public release. The cipher, the CLI, and the browser UI all ship together.
 - `.github/workflows/pages.yml`: builds the WASM bundle with `wasm-pack` and deploys `web/` to GitHub Pages on every push to `main`.
 - CI's `wasm32 build` job now uses `wasm-pack` so PR validation matches the production deploy pipeline.
 
-[Unreleased]: https://github.com/masaki-09/musubi/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/masaki-09/musubi/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/masaki-09/musubi/releases/tag/v0.2.0
 [0.1.0]: https://github.com/masaki-09/musubi/releases/tag/v0.1.0
