@@ -44,6 +44,12 @@ musubi keygen -o my.key
 # 暗号化（stdin → stdout、アンカー位置は中央が既定）
 echo "あいしてる" | musubi encrypt -k my.key -o love.json
 
+# 多重結び（chain encoder）— 関係グラフがランダム木に
+echo "あいしてる" | musubi encrypt -k my.key --strategy chain
+
+# 迷い糸（noise injection）— 平文長すら隠す
+echo "あいしてる" | musubi encrypt -k my.key --noise 5
+
 # 復号
 musubi decrypt -k my.key -i love.json
 # → あいしてる
@@ -55,7 +61,8 @@ musubi decrypt -k my.key -i love.json
 |---|---|---|
 | `keygen`  | `-o <file>`, `--seed <u64>` | 出力先 / 再現用のPRNG seed（デバッグ用、本番では使わない） |
 | `encrypt` | `-k <file>`, `-i <file>`, `-o <file>`, `-a <pos>`, `--compact` | 鍵 / 入力 / 出力 / アンカー位置（既定: 中央）/ 整形なしJSON |
-| `decrypt` | `-k <file>`, `-i <file>`, `-o <file>` | 鍵 / 入力 / 出力 |
+| `encrypt` | `--strategy <canonical\|chain>`, `--noise <N>`, `--seed <u64>` | エンコーダ戦略 / 迷い糸の本数 / 乱数シード（v0.2〜） |
+| `decrypt` | `-k <file>`, `-i <file>`, `-o <file>` | 鍵 / 入力 / 出力（迷い糸入りも自動判別） |
 
 ### Web
 

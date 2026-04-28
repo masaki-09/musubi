@@ -143,6 +143,112 @@ fn keygen_compact_seed_is_deterministic() {
 }
 
 #[test]
+fn round_trip_with_chain_strategy() {
+    let dir = tempdir().unwrap();
+    let key_path = dir.path().join("key.json");
+
+    musubi()
+        .args(["keygen", "--seed", "100"])
+        .arg("-o")
+        .arg(&key_path)
+        .assert()
+        .success();
+
+    let cipher_output = musubi()
+        .args(["encrypt", "-k"])
+        .arg(&key_path)
+        .args(["--strategy", "chain", "--seed", "7"])
+        .write_stdin("あいしてる")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    musubi()
+        .args(["decrypt", "-k"])
+        .arg(&key_path)
+        .write_stdin(cipher_output)
+        .assert()
+        .success()
+        .stdout("あいしてる\n");
+}
+
+#[test]
+fn round_trip_with_noise_injection() {
+    let dir = tempdir().unwrap();
+    let key_path = dir.path().join("key.json");
+
+    musubi()
+        .args(["keygen", "--seed", "200"])
+        .arg("-o")
+        .arg(&key_path)
+        .assert()
+        .success();
+
+    let cipher_output = musubi()
+        .args(["encrypt", "-k"])
+        .arg(&key_path)
+        .args(["--noise", "5", "--seed", "13"])
+        .write_stdin("あいしてる")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    // Ciphertext must contain plaintext_indices marker for noise mode.
+    let cipher_str = std::str::from_utf8(&cipher_output).unwrap();
+    assert!(
+        cipher_str.contains("plaintext_indices"),
+        "noise mode should emit ext.plaintext_indices: {cipher_str}"
+    );
+
+    musubi()
+        .args(["decrypt", "-k"])
+        .arg(&key_path)
+        .write_stdin(cipher_output)
+        .assert()
+        .success()
+        .stdout("あいしてる\n");
+}
+
+#[test]
+fn seeded_chain_encrypt_is_deterministic() {
+    let dir = tempdir().unwrap();
+    let key_path = dir.path().join("key.json");
+
+    musubi()
+        .args(["keygen", "--seed", "300"])
+        .arg("-o")
+        .arg(&key_path)
+        .assert()
+        .success();
+
+    let a = musubi()
+        .args(["encrypt", "-k"])
+        .arg(&key_path)
+        .args(["--strategy", "chain", "--seed", "555"])
+        .write_stdin("musubi")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let b = musubi()
+        .args(["encrypt", "-k"])
+        .arg(&key_path)
+        .args(["--strategy", "chain", "--seed", "555"])
+        .write_stdin("musubi")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    assert_eq!(a, b, "seeded chain encrypt should be deterministic");
+}
+
+#[test]
 fn version_flag_prints_a_version() {
     musubi()
         .arg("--version")

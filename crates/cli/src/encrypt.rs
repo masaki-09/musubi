@@ -3,10 +3,23 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use clap::Parser;
-use musubi_core::{encrypt, Alphabet};
+use clap::{Parser, ValueEnum};
+use musubi_core::{encrypt, encrypt_woven, Alphabet, Ciphertext};
+use rand::rngs::OsRng;
+use rand::SeedableRng;
 
 use crate::io::{read_input, read_key, trim_trailing_newline, write_output};
+
+/// Encoder strategy selectable on the command line.
+#[derive(Copy, Clone, Debug, ValueEnum)]
+pub enum Strategy {
+    /// v0.1 canonical encoder — every relation references the immediately
+    /// adjacent position toward the anchor. Deterministic, no RNG used.
+    Canonical,
+    /// v0.2 chain encoder (多重結び) — relations form a uniformly random
+    /// spanning tree rooted at the anchor. Required when `--noise > 0`.
+    Chain,
+}
 
 /// Arguments for `musubi encrypt`.
 #[derive(Parser)]
@@ -30,6 +43,23 @@ pub struct Args {
     /// Emit compact JSON instead of pretty-printed.
     #[arg(long)]
     compact: bool,
+
+    /// Encoder strategy. `canonical` (default) preserves v0.1 output;
+    /// `chain` produces a random spanning tree (and is required for noise).
+    #[arg(long, value_enum, default_value_t = Strategy::Canonical)]
+    strategy: Strategy,
+
+    /// Inject `noise` dummy characters (迷い糸). Hides the true plaintext
+    /// length and structure. Implies `--strategy chain`.
+    #[arg(long, default_value_t = 0)]
+    noise: usize,
+
+    /// Seed the chain/noise RNG with a `u64` for reproducible output.
+    /// Ignored under `--strategy canonical` with `--noise 0`.
+    ///
+    /// **Do not** use a seeded RNG for real messages.
+    #[arg(long)]
+    seed: Option<u64>,
 }
 
 /// Run the `encrypt` subcommand.
@@ -43,8 +73,23 @@ pub fn run(args: &Args) -> anyhow::Result<()> {
         anyhow::bail!("plaintext is empty");
     }
     let anchor = args.anchor.unwrap_or(n / 2);
-    let cipher = encrypt(plaintext, &key, anchor)
-        .with_context(|| format!("failed to encrypt with anchor at position {anchor}"))?;
+
+    let needs_chain = matches!(args.strategy, Strategy::Chain) || args.noise > 0;
+
+    let cipher: Ciphertext = if needs_chain {
+        if let Some(seed) = args.seed {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+            encrypt_woven(plaintext, &key, anchor, args.noise, &mut rng)
+        } else {
+            let mut rng = OsRng;
+            encrypt_woven(plaintext, &key, anchor, args.noise, &mut rng)
+        }
+        .with_context(|| format!("failed to encrypt with anchor at position {anchor}"))?
+    } else {
+        encrypt(plaintext, &key, anchor)
+            .with_context(|| format!("failed to encrypt with anchor at position {anchor}"))?
+    };
+
     let mut json = if args.compact {
         serde_json::to_string(&cipher)?
     } else {
