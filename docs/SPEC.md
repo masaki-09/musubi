@@ -142,6 +142,39 @@ For every non-null relation at index `i`:
 A conforming decoder MAY accept any acyclic reference graph; a conforming
 encoder MUST emit relations in the canonical form described in §6.
 
+### 5.3 Optional `ext` field (v0.2)
+
+A ciphertext MAY include an optional `ext` object carrying extension
+data introduced after v0.1:
+
+```json
+{
+  "version": 1,
+  "alphabet": "default-v1",
+  "length": 8,
+  "anchor": { "position": 4, "character": "し" },
+  "relations": [ … 8 entries … ],
+  "ext": {
+    "plaintext_indices": [2, 5, 4, 1, 7]
+  }
+}
+```
+
+| Field | Constraint |
+|---|---|
+| `ext` | OPTIONAL. Absent ciphertexts behave identically to v0.1. |
+| `ext.plaintext_indices` | Array of distinct, in-range positions (`< length`), in plaintext order. MUST contain `anchor.position`. Length equals the original plaintext length `n`. |
+
+When `ext.plaintext_indices` is present, the ciphertext was produced by
+the woven encoder (§6.6). Positions not listed in
+`ext.plaintext_indices` are *noise* (dummy) entries; their characters
+are drawn from Σ but carry no plaintext meaning.
+
+A v0.1 decoder that does not understand `ext` will reject ciphertexts
+carrying noise (the topological sort will recover all `length`
+characters but the result will not match the intended plaintext). v0.2
+decoders MUST honor `ext.plaintext_indices` per §7.1.
+
 ## 6. Encryption (canonical encoder)
 
 Given plaintext `m₀ m₁ … mₙ₋₁` and anchor position `a`:
@@ -187,6 +220,42 @@ preserved by construction (every non-anchor position's reference is a
 strictly earlier `resolved` position, so the graph is acyclic and
 rooted at the anchor).
 
+## 6.6 Encryption with noise injection (optional)
+
+Implementations MAY inject *noise* — extra dummy positions interleaved
+with the real plaintext — in order to obscure the plaintext length and
+structure from observers without the key. This is the **woven encoder**
+(迷い糸 / wandering threads).
+
+Inputs: a plaintext `m₀ … mₙ₋₁`, an anchor position `a < n`, a noise
+count `k ≥ 0`, and a uniform random source `R`.
+
+When `k = 0`, the woven encoder MUST behave identically to the chain
+encoder of §6.5.
+
+When `k > 0`:
+
+1. Validate `n ≥ 1`, `a < n`, and every `m_i ∈ Σ` as in §6.
+2. Let `N = n + k` be the total ciphertext length.
+3. Sample a uniformly random injection `σ : {0..n} → {0..N}` with `R`.
+   The list `[σ(0), σ(1), …, σ(n−1)]` is the *plaintext_indices*. The
+   `k` slots not in `σ`'s image are *noise slots*.
+4. For each noise slot `j`, draw a character `d_j` uniformly from `Σ`
+   using `R`.
+5. Build a uniformly random spanning tree over `{0..N}` rooted at
+   `σ(a)`, choosing references the same way as §6.5.
+6. For each non-root slot `i`, compute its relation against its chosen
+   reference using §6's `chooseRelation` rule. The character at slot `i`
+   is `m_{σ⁻¹(i)}` if `i ∈ image(σ)`, otherwise `d_i`.
+7. Emit the ciphertext with:
+   - `length = N`
+   - `anchor = (σ(a), m_a)` — the anchor is always a real plaintext slot
+   - `relations` from step 6
+   - `ext.plaintext_indices = [σ(0), σ(1), …, σ(n−1)]`
+
+The resulting ciphertext is fully described by §5 of the v1 format
+plus the optional `ext` field of §5.3 below.
+
 ## 7. Decryption
 
 Given a ciphertext `C` and a key `π`:
@@ -205,6 +274,23 @@ Given a ciphertext `C` and a key `π`:
 
 `applyRelation(rel, ref_char)` computes the target rank from §4 and looks
 up the corresponding character via `π`.
+
+### 7.1 Decryption with `ext.plaintext_indices`
+
+When the ciphertext carries `ext.plaintext_indices`, an additional
+post-processing step replaces step 8 of §7:
+
+7a. Validate `ext.plaintext_indices`:
+- It MUST be non-empty and contain at most `length` entries.
+- Every entry MUST be `< length`.
+- Entries MUST be distinct.
+- It MUST contain `anchor.position`.
+
+7b. Recover the plaintext as
+`chars[plaintext_indices[0]] chars[plaintext_indices[1]] …
+chars[plaintext_indices[n-1]]`,
+where `chars` is the fully-decoded array from step 7. Positions not
+listed in `plaintext_indices` are noise and are discarded.
 
 ## 8. Errors
 
