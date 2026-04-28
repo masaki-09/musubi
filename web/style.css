@@ -151,6 +151,27 @@ button.primary:hover { background: var(--accent); border-color: var(--accent); }
   margin-top: 0.5rem;
 }
 
+details.weaving {
+  margin: 1.2rem 0 0.4rem;
+  padding: 0.8rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  background: #fdfdfa;
+}
+details.weaving > summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+details.weaving[open] > summary {
+  margin-bottom: 0.6rem;
+}
+details.weaving .lede {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+}
+
 #status {
   position: fixed;
   bottom: 1.2rem;
