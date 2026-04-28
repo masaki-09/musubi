@@ -1,6 +1,7 @@
 //! `encrypt` / `decrypt` and the [`Ciphertext`] container.
 
 use rand::seq::SliceRandom;
+use rand::Rng;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 
@@ -16,24 +17,49 @@ pub const FORMAT_VERSION: u32 = 1;
 /// The plaintext can be reconstructed from `(anchor, relations)` together
 /// with the [`Key`]. Each non-anchor position has exactly one [`Relation`];
 /// the anchor's slot is `None`.
+///
+/// In v0.2 the optional [`ext`](Self::ext) field carries a backwards-
+/// compatible extension that records the mapping from plaintext order to
+/// ciphertext positions when noise (迷い糸 / 「ダミー文字」) is injected.
+/// Ciphertexts without injected noise omit `ext` entirely; v0.1 decoders
+/// then read them as before.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Ciphertext {
     /// Format version (currently [`FORMAT_VERSION`]).
     pub version: u32,
     /// Identifier of the alphabet this ciphertext was produced for.
     pub alphabet: String,
-    /// Length of the original plaintext in characters.
+    /// Total number of slots in [`relations`](Self::relations) — equals
+    /// the plaintext length when no noise was injected, or
+    /// `plaintext_len + noise` when noise was used.
     pub length: usize,
     /// The revealed character that anchors the chain.
     pub anchor: Anchor,
     /// `relations.len() == length`. The slot at [`Anchor::position`] is `None`.
     pub relations: Vec<Option<Relation>>,
+    /// Optional v0.2 extension data. Absent for noise-free ciphertexts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ext: Option<CiphertextExt>,
+}
+
+/// Optional v0.2 ciphertext extension.
+///
+/// When a ciphertext was produced with noise injection (迷い糸), this
+/// struct records which ciphertext positions hold the real plaintext
+/// (in plaintext order). Absent when no noise was injected.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CiphertextExt {
+    /// `plaintext_indices[k] = j` means the `k`-th plaintext character is
+    /// stored at ciphertext position `j`. `len()` equals the original
+    /// plaintext length; positions not listed are noise (dummy) entries.
+    pub plaintext_indices: Vec<usize>,
 }
 
 /// The plaintext-revealing anchor — position and character.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Anchor {
-    /// Index of the anchor in the original plaintext.
+    /// Index of the anchor in the ciphertext (which is also a plaintext
+    /// position; the anchor is always a real character, never noise).
     pub position: usize,
     /// Plain (unencrypted) character at that position.
     pub character: char,
@@ -91,6 +117,7 @@ pub fn encrypt(plaintext: &str, key: &Key, anchor_position: usize) -> Result<Cip
             character: chars[anchor_position],
         },
         relations,
+        ext: None,
     })
 }
 
@@ -159,6 +186,120 @@ pub fn encrypt_chain<R: RngCore>(
             character: chars[anchor_position],
         },
         relations,
+        ext: None,
+    })
+}
+
+/// Encrypt `plaintext` with `key`, weaving a random spanning tree rooted at
+/// the anchor and *injecting `noise` dummy characters* (迷い糸 / "wandering
+/// threads") into the resulting ciphertext.
+///
+/// When `noise == 0` this is equivalent to [`encrypt_chain`]. When
+/// `noise > 0`:
+///
+/// - The ciphertext has `length = plaintext.chars().count() + noise`.
+/// - `noise` extra positions hold uniformly-random dummy characters from
+///   the alphabet. They are interleaved with the plaintext positions
+///   uniformly at random.
+/// - The reference graph is a uniformly random spanning tree over **all**
+///   `length` positions, rooted at the anchor.
+/// - The ciphertext carries [`CiphertextExt::plaintext_indices`] so that
+///   the receiver (with the right key) can identify and extract the real
+///   plaintext positions after decoding the full graph.
+///
+/// Without the key, an attacker cannot tell which entries are plaintext
+/// and which are noise — the true plaintext length is hidden.
+///
+/// # Errors
+///
+/// Same as [`encrypt`].
+pub fn encrypt_woven<R: RngCore>(
+    plaintext: &str,
+    key: &Key,
+    anchor_position: usize,
+    noise: usize,
+    rng: &mut R,
+) -> Result<Ciphertext> {
+    if noise == 0 {
+        return encrypt_chain(plaintext, key, anchor_position, rng);
+    }
+
+    let chars: Vec<char> = plaintext.chars().collect();
+    let n = chars.len();
+    if n == 0 {
+        return Err(MusubiError::EmptyPlaintext);
+    }
+    if anchor_position >= n {
+        return Err(MusubiError::AnchorOutOfRange {
+            position: anchor_position,
+            length: n,
+        });
+    }
+    for &c in &chars {
+        if key.rank_of(c).is_none() {
+            return Err(MusubiError::CharOutsideAlphabet { ch: c });
+        }
+    }
+
+    let total_len = n + noise;
+
+    // Decide which ciphertext slots hold the real plaintext (in plaintext
+    // order). plaintext_indices[k] = j means plaintext[k] is at slot j.
+    let mut all_slots: Vec<usize> = (0..total_len).collect();
+    all_slots.shuffle(rng);
+    let plaintext_indices: Vec<usize> = all_slots[..n].to_vec();
+    let noise_slots: Vec<usize> = all_slots[n..].to_vec();
+
+    // Build the full character array: real plaintext chars at their slots,
+    // noise slots filled with uniformly random characters from Σ.
+    let alpha_len = key.len();
+    let mut full_chars: Vec<char> = vec!['\0'; total_len];
+    for (k, &j) in plaintext_indices.iter().enumerate() {
+        full_chars[j] = chars[k];
+    }
+    for &j in &noise_slots {
+        let rank = rng.gen_range(0..alpha_len);
+        full_chars[j] = key
+            .char_at(rank)
+            .expect("rank drawn from gen_range(0..alpha_len) is always valid");
+    }
+
+    // Anchor sits at the slot that holds the original anchor character.
+    let cipher_anchor = plaintext_indices[anchor_position];
+    let anchor_char = full_chars[cipher_anchor];
+
+    // Build a uniformly random spanning tree over all `total_len` slots,
+    // rooted at `cipher_anchor`.
+    let mut relations: Vec<Option<Relation>> = vec![None; total_len];
+    let mut pending: Vec<usize> = (0..total_len).filter(|&i| i != cipher_anchor).collect();
+    pending.shuffle(rng);
+
+    let mut resolved: Vec<usize> = Vec::with_capacity(total_len);
+    resolved.push(cipher_anchor);
+
+    for i in pending {
+        let &ref_idx = resolved
+            .choose(rng)
+            .expect("resolved always contains at least the anchor");
+        relations[i] = Some(make_relation(
+            full_chars[i],
+            full_chars[ref_idx],
+            ref_idx,
+            key,
+        ));
+        resolved.push(i);
+    }
+
+    Ok(Ciphertext {
+        version: FORMAT_VERSION,
+        alphabet: key.alphabet_id().to_string(),
+        length: total_len,
+        anchor: Anchor {
+            position: cipher_anchor,
+            character: anchor_char,
+        },
+        relations,
+        ext: Some(CiphertextExt { plaintext_indices }),
     })
 }
 
@@ -271,6 +412,52 @@ pub fn decrypt(cipher: &Ciphertext, key: &Key) -> Result<String> {
                 reason: "relation graph has cycles or unreachable positions".to_string(),
             });
         }
+    }
+
+    if let Some(ext) = &cipher.ext {
+        let indices = &ext.plaintext_indices;
+        if indices.is_empty() {
+            return Err(MusubiError::MalformedCiphertext {
+                reason: "ext.plaintext_indices must not be empty".to_string(),
+            });
+        }
+        if indices.len() > n {
+            return Err(MusubiError::MalformedCiphertext {
+                reason: format!(
+                    "ext.plaintext_indices length {} exceeds ciphertext length {}",
+                    indices.len(),
+                    n
+                ),
+            });
+        }
+        let mut seen = vec![false; n];
+        for &idx in indices {
+            if idx >= n {
+                return Err(MusubiError::MalformedCiphertext {
+                    reason: format!(
+                        "ext.plaintext_indices contains out-of-range index {idx} (length {n})"
+                    ),
+                });
+            }
+            if seen[idx] {
+                return Err(MusubiError::MalformedCiphertext {
+                    reason: format!("ext.plaintext_indices contains duplicate index {idx}"),
+                });
+            }
+            seen[idx] = true;
+        }
+        if !indices.contains(&anchor_pos) {
+            return Err(MusubiError::MalformedCiphertext {
+                reason: format!(
+                    "ext.plaintext_indices does not contain the anchor position {anchor_pos}"
+                ),
+            });
+        }
+        let plaintext: String = indices
+            .iter()
+            .map(|&i| chars[i].expect("filled in loop"))
+            .collect();
+        return Ok(plaintext);
     }
 
     let plaintext: String = chars
@@ -476,5 +663,151 @@ mod tests {
         let json = serde_json::to_string_pretty(&cipher).unwrap();
         let parsed: Ciphertext = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, cipher);
+    }
+
+    #[test]
+    fn legacy_ciphertext_without_ext_field_still_decodes() {
+        // A v0.1-style JSON document — note: no `ext` field present.
+        let (_a, key) = fresh_key(0x0BAD_F00D);
+        let cipher = encrypt("musubi", &key, 0).unwrap();
+        let mut json: serde_json::Value = serde_json::to_value(&cipher).unwrap();
+        // serializer omits None ext, but ensure removal even if a tool added it.
+        json.as_object_mut().unwrap().remove("ext");
+        let parsed: Ciphertext = serde_json::from_value(json).unwrap();
+        assert!(parsed.ext.is_none());
+        assert_eq!(decrypt(&parsed, &key).unwrap(), "musubi");
+    }
+
+    #[test]
+    fn ciphertext_omits_ext_field_when_absent() {
+        let (_a, key) = fresh_key(0xABCD);
+        let cipher = encrypt("hi", &key, 0).unwrap();
+        let json = serde_json::to_string(&cipher).unwrap();
+        assert!(!json.contains("\"ext\""), "ext should be omitted: {json}");
+    }
+
+    #[test]
+    fn woven_with_zero_noise_is_chain() {
+        let (_a, key) = fresh_key(0xFACE);
+        let plaintext = "あいしてる";
+        let mut rng_a = rand::rngs::StdRng::seed_from_u64(99);
+        let mut rng_b = rand::rngs::StdRng::seed_from_u64(99);
+        let a = encrypt_woven(plaintext, &key, 2, 0, &mut rng_a).unwrap();
+        let b = encrypt_chain(plaintext, &key, 2, &mut rng_b).unwrap();
+        assert_eq!(a, b);
+        assert!(a.ext.is_none());
+    }
+
+    #[test]
+    fn woven_round_trips_for_every_anchor_position() {
+        let (_a, key) = fresh_key(0x1234_5678);
+        let plaintext = "あいしてる";
+        let n = plaintext.chars().count();
+        for anchor in 0..n {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(0xCAFE + anchor as u64);
+            let cipher = encrypt_woven(plaintext, &key, anchor, 4, &mut rng).unwrap();
+            assert_eq!(cipher.length, n + 4);
+            assert!(cipher.ext.is_some());
+            let ext = cipher.ext.as_ref().unwrap();
+            assert_eq!(ext.plaintext_indices.len(), n);
+            assert!(
+                ext.plaintext_indices.contains(&cipher.anchor.position),
+                "anchor must be in plaintext_indices"
+            );
+            assert_eq!(decrypt(&cipher, &key).unwrap(), plaintext);
+        }
+    }
+
+    #[test]
+    fn woven_is_deterministic_with_seeded_rng() {
+        let (_a, key) = fresh_key(0xD00D);
+        let plaintext = "Hello, musubi!";
+        let mut rng_a = rand::rngs::StdRng::seed_from_u64(7);
+        let mut rng_b = rand::rngs::StdRng::seed_from_u64(7);
+        let a = encrypt_woven(plaintext, &key, 3, 5, &mut rng_a).unwrap();
+        let b = encrypt_woven(plaintext, &key, 3, 5, &mut rng_b).unwrap();
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn woven_hides_plaintext_length() {
+        let (_a, key) = fresh_key(0xBABE);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(1);
+        let cipher = encrypt_woven("あいしてる", &key, 2, 7, &mut rng).unwrap();
+        // Plaintext length (5) is not directly exposed; ciphertext length is 12.
+        assert_eq!(cipher.length, 12);
+    }
+
+    #[test]
+    fn woven_round_trips_through_json() {
+        let (_a, key) = fresh_key(0xDEED);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+        let cipher = encrypt_woven("musubi", &key, 0, 3, &mut rng).unwrap();
+        let json = serde_json::to_string_pretty(&cipher).unwrap();
+        assert!(json.contains("\"plaintext_indices\""));
+        let parsed: Ciphertext = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, cipher);
+        assert_eq!(decrypt(&parsed, &key).unwrap(), "musubi");
+    }
+
+    #[test]
+    fn woven_rejects_invalid_ext() {
+        let (_a, key) = fresh_key(0xBEAD);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0);
+        let mut cipher = encrypt_woven("musubi", &key, 0, 2, &mut rng).unwrap();
+
+        // Out-of-range index.
+        let original = cipher.ext.clone().unwrap();
+        cipher.ext = Some(CiphertextExt {
+            plaintext_indices: vec![0, 1, 2, 999],
+        });
+        assert!(matches!(
+            decrypt(&cipher, &key),
+            Err(MusubiError::MalformedCiphertext { .. })
+        ));
+
+        // Duplicate index.
+        cipher.ext = Some(CiphertextExt {
+            plaintext_indices: vec![0, 0, 1],
+        });
+        assert!(matches!(
+            decrypt(&cipher, &key),
+            Err(MusubiError::MalformedCiphertext { .. })
+        ));
+
+        // Empty.
+        cipher.ext = Some(CiphertextExt {
+            plaintext_indices: vec![],
+        });
+        assert!(matches!(
+            decrypt(&cipher, &key),
+            Err(MusubiError::MalformedCiphertext { .. })
+        ));
+
+        // Anchor not in indices.
+        let anchor_pos = cipher.anchor.position;
+        let other_indices: Vec<usize> = original
+            .plaintext_indices
+            .iter()
+            .copied()
+            .filter(|&i| i != anchor_pos)
+            .collect();
+        cipher.ext = Some(CiphertextExt {
+            plaintext_indices: other_indices,
+        });
+        assert!(matches!(
+            decrypt(&cipher, &key),
+            Err(MusubiError::MalformedCiphertext { .. })
+        ));
+    }
+
+    #[test]
+    fn woven_rejects_empty_plaintext() {
+        let (_a, key) = fresh_key(11);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0);
+        assert!(matches!(
+            encrypt_woven("", &key, 0, 3, &mut rng),
+            Err(MusubiError::EmptyPlaintext)
+        ));
     }
 }
