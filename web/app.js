@@ -3,7 +3,12 @@
 // All cipher operations run locally in the browser via the
 // `musubi-wasm` crate; no network requests are made.
 
-import init, { keygen, encrypt, decrypt } from "./pkg/musubi_wasm.js";
+import init, {
+  keygen,
+  encrypt,
+  encryptWoven,
+  decrypt,
+} from "./pkg/musubi_wasm.js";
 
 await init();
 
@@ -99,9 +104,21 @@ document.getElementById("btn-encrypt").addEventListener("click", () => {
     }
     const anchorStr = document.getElementById("enc-anchor").value;
     const anchor = anchorStr === "" ? undefined : Number(anchorStr);
-    const cipher = encrypt(plain, key, anchor);
+    const noiseStr = document.getElementById("enc-noise").value;
+    const noise = noiseStr === "" ? 0 : Number(noiseStr);
+    const useChain = document.getElementById("enc-chain").checked;
+    const cipher =
+      useChain || noise > 0
+        ? encryptWoven(plain, key, anchor, noise, undefined)
+        : encrypt(plain, key, anchor);
     document.getElementById("enc-output").value = cipher;
-    setStatus("暗号化しました", "success");
+    if (noise > 0) {
+      setStatus(`暗号化しました（迷い糸 ${noise} 本）`, "success");
+    } else if (useChain) {
+      setStatus("暗号化しました（多重結び）", "success");
+    } else {
+      setStatus("暗号化しました", "success");
+    }
   } catch (e) {
     setStatus("暗号化に失敗: " + e.message, "error");
   }

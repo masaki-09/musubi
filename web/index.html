@@ -41,6 +41,21 @@
       <label for="enc-anchor" class="inline">アンカー位置 (省略時は中央)
         <input id="enc-anchor" type="number" min="0" placeholder="例: 2">
       </label>
+
+      <details class="weaving">
+        <summary>織りモード（v0.2）</summary>
+        <p class="lede">
+          v0.2 で導入された 2 つの追加エンコーダです。鍵がなければさらに解読しにくくなりますが、玩具暗号としての位置づけは変わりません。
+        </p>
+        <label class="inline">
+          <input id="enc-chain" type="checkbox">
+          多重結び — 関係をランダムな木の形に編む
+        </label>
+        <label for="enc-noise" class="inline">迷い糸の本数 (0 で無効)
+          <input id="enc-noise" type="number" min="0" value="0" placeholder="例: 5">
+        </label>
+      </details>
+
       <button id="btn-encrypt" class="primary">暗号化</button>
       <textarea id="enc-output" readonly placeholder="暗号文 (JSON)" rows="10"></textarea>
       <div class="actions">

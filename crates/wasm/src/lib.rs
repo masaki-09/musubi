@@ -10,8 +10,9 @@
 
 #![doc(html_root_url = "https://docs.rs/musubi-wasm")]
 
-use musubi_core::{decrypt, encrypt, Alphabet, Ciphertext, Key};
+use musubi_core::{decrypt, encrypt, encrypt_woven, Alphabet, Ciphertext, Key};
 use rand::rngs::OsRng;
+use rand::SeedableRng;
 use wasm_bindgen::prelude::*;
 
 /// Crate version, baked in at compile time.
@@ -61,6 +62,48 @@ pub fn js_encrypt(
     }
     let pos = anchor.unwrap_or(n / 2);
     let cipher = encrypt(plaintext, &key, pos).map_err(to_js_error)?;
+    serde_json::to_string_pretty(&cipher).map_err(to_js_error)
+}
+
+/// Encrypt `plaintext` with the v0.2 woven encoder — a random spanning
+/// tree rooted at the anchor, optionally interleaved with `noise` dummy
+/// characters (迷い糸).
+///
+/// `noise = 0` produces a chain ciphertext (multi-knot encoder, 多重結び).
+/// `noise > 0` produces a noise-injected ciphertext that hides the true
+/// plaintext length from anyone without the key.
+///
+/// `seed` is optional. When provided, the chain/noise RNG is seeded for
+/// reproducible output (intended for tests/demos only). When omitted,
+/// the browser's `crypto.getRandomValues` (via [`OsRng`]) is used.
+///
+/// # Errors
+///
+/// Same as [`js_encrypt`].
+#[wasm_bindgen(js_name = encryptWoven)]
+pub fn js_encrypt_woven(
+    plaintext: &str,
+    key_json: &str,
+    anchor: Option<usize>,
+    noise: Option<usize>,
+    seed: Option<u64>,
+) -> Result<String, JsError> {
+    let alphabet = Alphabet::default_v1();
+    let key = Key::from_json(key_json, &alphabet).map_err(to_js_error)?;
+    let n = plaintext.chars().count();
+    if n == 0 {
+        return Err(JsError::new("plaintext is empty"));
+    }
+    let pos = anchor.unwrap_or(n / 2);
+    let noise = noise.unwrap_or(0);
+    let cipher = if let Some(s) = seed {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(s);
+        encrypt_woven(plaintext, &key, pos, noise, &mut rng)
+    } else {
+        let mut rng = OsRng;
+        encrypt_woven(plaintext, &key, pos, noise, &mut rng)
+    }
+    .map_err(to_js_error)?;
     serde_json::to_string_pretty(&cipher).map_err(to_js_error)
 }
 
