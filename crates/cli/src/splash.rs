@@ -15,13 +15,27 @@ macro_rules! c {
     };
 }
 
-fn bold(s: &str) -> String      { c!("1",       s) }
-fn dim(s: &str) -> String       { c!("2",       s) }
-fn red(s: &str) -> String       { c!("31",      s) }
-fn bright_red(s: &str) -> String{ c!("91",      s) }
-fn white(s: &str) -> String     { c!("97",      s) }
-fn cyan(s: &str) -> String      { c!("36",      s) }
-fn yellow(s: &str) -> String    { c!("33",      s) }
+fn bold(s: &str) -> String {
+    c!("1", s)
+}
+fn dim(s: &str) -> String {
+    c!("2", s)
+}
+fn red(s: &str) -> String {
+    c!("31", s)
+}
+fn bright_red(s: &str) -> String {
+    c!("91", s)
+}
+fn white(s: &str) -> String {
+    c!("97", s)
+}
+fn cyan(s: &str) -> String {
+    c!("36", s)
+}
+fn yellow(s: &str) -> String {
+    c!("33", s)
+}
 
 // ── Layout constant ───────────────────────────────────────────────────────────
 
@@ -109,17 +123,17 @@ fn build_lines() -> Vec<String> {
 
     let steps: &[(&str, &str, &str)] = &[
         ("①", "鍵を生成", "musubi keygen -o my.key"),
-        ("②", "暗号化  ", "musubi encrypt -k my.key -i plain.txt -o cipher.json"),
+        (
+            "②",
+            "暗号化  ",
+            "musubi encrypt -k my.key -i plain.txt -o cipher.json",
+        ),
         ("③", "復号    ", "musubi decrypt -k my.key -i cipher.json"),
     ];
 
     for (num, label, cmd) in steps {
         // step number + japanese label
-        let step_line = format!(
-            "  {}  {}",
-            bright_red(num),
-            dim(label),
-        );
+        let step_line = format!("  {}  {}", bright_red(num), dim(label),);
         let step_vis = 2 + 1 + 2 + label.chars().count();
         v.push(row(&step_line, step_vis));
 
@@ -137,11 +151,7 @@ fn build_lines() -> Vec<String> {
     // ── Links ─────────────────────────────────────────────────────────────────
     v.push(blank_row());
     {
-        let link_line = format!(
-            "  {}  {}",
-            dim("Docs"),
-            cyan("https://musubi.masak1.com"),
-        );
+        let link_line = format!("  {}  {}", dim("Docs"), cyan("https://musubi.masak1.com"),);
         v.push(row(&link_line, 2 + 4 + 2 + 25));
     }
     {
