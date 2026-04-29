@@ -1,5 +1,7 @@
 //! `encrypt` / `decrypt` and the [`Ciphertext`] container.
 
+use std::collections::VecDeque;
+
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rand::RngCore;
@@ -378,40 +380,56 @@ pub fn decrypt(cipher: &Ciphertext, key: &Key) -> Result<String> {
 
     let mut chars: Vec<Option<char>> = vec![None; n];
     chars[anchor_pos] = Some(cipher.anchor.character);
-    let mut remaining = n - 1;
 
-    while remaining > 0 {
-        let mut progress = false;
-        for i in 0..n {
-            if chars[i].is_some() {
-                continue;
-            }
-            let rel =
-                cipher.relations[i]
-                    .as_ref()
-                    .ok_or_else(|| MusubiError::MalformedCiphertext {
-                        reason: format!("missing relation at position {i}"),
-                    })?;
-            let ref_idx = rel.reference();
-            if ref_idx >= n {
-                return Err(MusubiError::MalformedCiphertext {
-                    reason: format!(
-                        "relation at position {i} references out-of-range index {ref_idx}"
-                    ),
-                });
-            }
-            let Some(ref_char) = chars[ref_idx] else {
-                continue;
-            };
-            chars[i] = Some(apply_relation(*rel, ref_char, key)?);
-            progress = true;
-            remaining -= 1;
+    // Build a child-list index in O(n). Each non-anchor position has
+    // exactly one relation pointing at its parent; we invert that to a
+    // map from parent to children so the resolve pass below can run in
+    // BFS order. This pass also validates relation presence and
+    // reference range for *every* slot up-front.
+    let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (i, rel) in cipher.relations.iter().enumerate() {
+        if i == anchor_pos {
+            continue;
         }
-        if !progress {
+        let rel = rel
+            .as_ref()
+            .ok_or_else(|| MusubiError::MalformedCiphertext {
+                reason: format!("missing relation at position {i}"),
+            })?;
+        let ref_idx = rel.reference();
+        if ref_idx >= n {
             return Err(MusubiError::MalformedCiphertext {
-                reason: "relation graph has cycles or unreachable positions".to_string(),
+                reason: format!("relation at position {i} references out-of-range index {ref_idx}"),
             });
         }
+        children[ref_idx].push(i);
+    }
+
+    // BFS from the anchor along reverse-reference edges and resolve
+    // each child as soon as its parent is reached. The reference graph
+    // is a forest with the anchor as the root of one tree (each
+    // non-anchor has exactly one parent), so visiting in BFS order
+    // guarantees the parent's character is already known when we
+    // touch a child — a single linear pass suffices.
+    let mut queue: VecDeque<usize> = VecDeque::with_capacity(n);
+    queue.push_back(anchor_pos);
+    let mut visited: usize = 1;
+    while let Some(p) = queue.pop_front() {
+        for &c in &children[p] {
+            let rel = cipher.relations[c]
+                .as_ref()
+                .expect("validated when building children");
+            let ref_char = chars[p].expect("BFS visits a parent before its child");
+            chars[c] = Some(apply_relation(*rel, ref_char, key)?);
+            queue.push_back(c);
+            visited += 1;
+        }
+    }
+
+    if visited != n {
+        return Err(MusubiError::MalformedCiphertext {
+            reason: "relation graph has cycles or unreachable positions".to_string(),
+        });
     }
 
     if let Some(ext) = &cipher.ext {
