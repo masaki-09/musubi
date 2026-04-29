@@ -5,9 +5,16 @@ All notable changes to **musubi** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Codename convention
+
+Each release carries a poetic codename in the spirit of "結び (musubi)":
+
+- **Feature releases** get a unique codename. Examples: `0.1.0` 「初結び (hatsu-musubi)」, `0.2.0` 「織り (ori)」.
+- **Maintenance releases** (patches, performance fixes, polish) all share the codename **「整え (totonoe)」** and are numbered sequentially as `vol.N`. Examples: `0.2.1` is 「整え vol.1」, the next maintenance release will be 「整え vol.2」, and so on. The numbering is independent of the SemVer patch version — it counts maintenance releases since project start.
+
 ## [Unreleased]
 
-## [0.2.1] — 2026-04-29 — 「整え (totonoe)」
+## [0.2.1] — 2026-04-29 — 「整え vol.1 (totonoe vol.1)」
 
 A maintenance release. The cipher gets faster, the CLI gets a face,
 and the docs gain a postmortem of how we got here.
