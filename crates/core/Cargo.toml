@@ -14,7 +14,7 @@ readme = "../../README.md"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
-rand = "0.8"
+rand = "0.10"
 
 [lints]
 workspace = true
