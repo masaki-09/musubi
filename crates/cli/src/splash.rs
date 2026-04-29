@@ -133,7 +133,7 @@ fn build_lines() -> Vec<String> {
 
     for (num, label, cmd) in steps {
         // step number + japanese label
-        let step_line = format!("  {}  {}", bright_red(num), dim(label),);
+        let step_line = format!("  {}  {}", bright_red(num), dim(label));
         let step_vis = 2 + 1 + 2 + label.chars().count();
         v.push(row(&step_line, step_vis));
 
@@ -151,7 +151,7 @@ fn build_lines() -> Vec<String> {
     // ── Links ─────────────────────────────────────────────────────────────────
     v.push(blank_row());
     {
-        let link_line = format!("  {}  {}", dim("Docs"), cyan("https://musubi.masak1.com"),);
+        let link_line = format!("  {}  {}", dim("Docs"), cyan("https://musubi.masak1.com"));
         v.push(row(&link_line, 2 + 4 + 2 + 25));
     }
     {
