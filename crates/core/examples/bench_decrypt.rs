@@ -2,10 +2,10 @@
 //! lengths and both encoder strategies.
 //!
 //! Run with:
-//!     cargo run --release --example bench_decrypt
+//!     cargo run --release --example `bench_decrypt`
 //!
-//! Output is CSV on stdout (n, strategy, encrypt_ms, decrypt_ms) so it can
-//! be piped into a plot or table.
+//! Output is CSV on stdout (`n`, strategy, `encrypt_ms`, `decrypt_ms`) so
+//! it can be piped into a plot or table.
 
 use std::time::Instant;
 
