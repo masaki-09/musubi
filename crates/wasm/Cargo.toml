@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 musubi-core = { path = "../core", version = "0.2.0" }
 wasm-bindgen = "0.2"
 serde_json = "1"
-rand = "0.8"
+rand = "0.10"
 
 # Enable getrandom's `js` feature only when targeting the browser so
 # rand's OsRng can pull entropy from `crypto.getRandomValues`.
