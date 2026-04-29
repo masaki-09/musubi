@@ -8,11 +8,15 @@
 //! All commands accept `-i/--input` for an input path (stdin if omitted)
 //! and `-o/--output` for an output path (stdout if omitted), so they
 //! compose naturally in shell pipelines.
+//!
+//! Invoked with no subcommand, prints a welcome splash screen (TTY only;
+//! plain-text fallback when piped).
 
 mod decrypt;
 mod encrypt;
 mod io;
 mod keygen;
+mod splash;
 
 use clap::{Parser, Subcommand};
 
@@ -23,7 +27,7 @@ use clap::{Parser, Subcommand};
 #[command(name = "musubi", version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -39,8 +43,12 @@ enum Command {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Keygen(args) => keygen::run(&args),
-        Command::Encrypt(args) => encrypt::run(&args),
-        Command::Decrypt(args) => decrypt::run(&args),
+        Some(Command::Keygen(args)) => keygen::run(&args),
+        Some(Command::Encrypt(args)) => encrypt::run(&args),
+        Some(Command::Decrypt(args)) => decrypt::run(&args),
+        None => {
+            splash::print();
+            Ok(())
+        }
     }
 }
