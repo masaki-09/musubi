@@ -26,3 +26,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# AI context snapshot (intentionally local-only — for future AI agents
+# to bootstrap from a clean context. See AI_CONTEXT.md §0.2.)
+AI_CONTEXT.md
