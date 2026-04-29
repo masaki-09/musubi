@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-04-29 — 「整え (totonoe)」
+
+A maintenance release. The cipher gets faster, the CLI gets a face,
+and the docs gain a postmortem of how we got here.
+
+### Fixed
+- **`musubi_core::decrypt` is now linear time** — replaces the O(n²) fix-point loop with a single BFS from the anchor over a precomputed reference graph. Same on-disk format, same `MalformedCiphertext` error class, identical output. n=32,000 falls from 295.843 ms to 2.385 ms (124× speedup); doubling ratios sit at ~2.0× across the board. (#22)
+
+### Added
+- **CLI splash screen** — running `musubi` without a subcommand now prints a Gemini CLI / Claude Code-style banner with quick-start steps, doc links, and a toy-cipher disclaimer. TTY-aware: pipes and redirects fall back to plain text via `std::io::IsTerminal`. (#20)
+- **`crates/core/examples/bench_decrypt`** — reproducible CSV benchmark of `decrypt` across n = 500..32,000 for both encoder strategies. Run with `cargo run --release --example bench_decrypt -p musubi-core`. (#21)
+
+### Compatibility
+- `FORMAT_VERSION` stays at `1`. v0.1 and v0.2.0 ciphertexts decode bit-identically with v0.2.1.
+- MSRV stays at Rust 1.75.
+
 ## [0.2.0] — 2026-04-28 — 「織り (ori)」
 
 The "weaving" release. Two backward-compatible encoder extensions
